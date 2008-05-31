@@ -1,0 +1,7 @@
+mysql:
+    adapter: mysql
+    database: fkc_test
+    username: root
+postgresql:
+    adapter: postgresql
+    database: fkc_test
