@@ -49,19 +49,19 @@ class ForeignKeyConstraintsTest < Test::Unit::TestCase
     end
   else
     def test_constraints_to_sql
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES parent ("ap") ON UPDATE RESTRICT ON DELETE RESTRICT',
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE RESTRICT',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap').to_sql(ActiveRecord::Base.connection)
 
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac", "bc") REFERENCES parent ("ap", "bp") ON UPDATE RESTRICT ON DELETE RESTRICT',
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac", "bc") REFERENCES "parent" ("ap", "bp") ON UPDATE RESTRICT ON DELETE RESTRICT',
         ActiveRecord::ForeignKeyConstraint.new('cn', ['ac', 'bc'], 'parent', ['ap', 'bp']).to_sql(ActiveRecord::Base.connection)
 
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES parent ("ap") ON UPDATE CASCADE ON DELETE RESTRICT',
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE CASCADE ON DELETE RESTRICT',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :cascade).to_sql(ActiveRecord::Base.connection)
 
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES parent ("ap") ON UPDATE RESTRICT ON DELETE SET DEFAULT',
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE SET DEFAULT',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', nil, :set_default).to_sql(ActiveRecord::Base.connection)
 
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES parent ("ap") ON UPDATE SET NULL ON DELETE NO ACTION',
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE SET NULL ON DELETE NO ACTION',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action).to_sql(ActiveRecord::Base.connection)
     end
   end

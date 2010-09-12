@@ -100,16 +100,17 @@ module ActiveRecord
       end
       
       def remove_foreign_key_constraints_referencing(table_name)
-        execute("SELECT DISTINCT CONSTRAINT_NAME, TABLE_NAME" +
+        select_rows(
+                "SELECT DISTINCT TABLE_NAME, CONSTRAINT_NAME" +
                 "  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE" +
                 " WHERE REFERENCED_TABLE_SCHEMA = SCHEMA()" +
-                "   AND REFERENCED_TABLE_NAME = #{quote(table_name)}").each do |row|
-          remove_foreign_key_constraint(row[1], row[0])
+                "   AND REFERENCED_TABLE_NAME = #{quote(table_name)}").each do |table_name, constraint_name|
+          remove_foreign_key_constraint(table_name, constraint_name)
         end
       end
       
       def foreign_key_constraints_on(table_name)
-        self.class.constraints_from_sql(execute("SHOW CREATE TABLE #{quote_table_name(table_name)}").fetch_row.last)
+        self.class.constraints_from_sql(select_value("SHOW CREATE TABLE #{quote_table_name(table_name)}"))
       end
       
       def self.constraints_from_sql(create_table_sql)
@@ -126,7 +127,8 @@ module ActiveRecord
     
     class PostgreSQLAdapter
       def remove_foreign_key_constraints_referencing(table_name)
-        execute("SELECT referenced.relname, pg_constraint.conname" +
+        select_rows(
+                "SELECT referenced.relname, pg_constraint.conname" +
                 "  FROM pg_constraint, pg_class, pg_class referenced" +
                 " WHERE pg_constraint.confrelid = pg_class.oid" +
                 "   AND pg_class.relname = #{quote(table_name)}" +
@@ -136,7 +138,8 @@ module ActiveRecord
       end
       
       def foreign_key_constraints_on(table_name)
-        execute("SELECT pg_constraint.conname, pg_get_constraintdef(pg_constraint.oid)" +
+        select_rows(
+                "SELECT pg_constraint.conname, pg_get_constraintdef(pg_constraint.oid)" +
                 "  FROM pg_constraint, pg_class" +
                 " WHERE pg_constraint.conrelid = pg_class.oid" +
                 "   AND pg_class.relname = #{quote(table_name)}").collect do |name, constraintdef|
