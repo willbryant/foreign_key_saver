@@ -7,7 +7,7 @@ if File.directory?("#{PROJECT_ROOT}/vendor/rails")
 end
 require 'active_record'
 
-raise "use RAILS_ENV=mysql or RAILS_ENV=postgresql to test this plugin" if ENV['RAILS_ENV'].blank?
+raise "use RAILS_ENV=mysql or RAILS_ENV=postgresql to test this plugin" unless %w(mysql postgresql).include?(ENV['RAILS_ENV'])
 RAILS_ENV = ENV['RAILS_ENV']
 RAILS_ROOT = File.dirname(__FILE__)
 TEST_TEMP_DIR = File.join(File.dirname(__FILE__), 'tmp', 'foreign_key_constraints')
