@@ -94,7 +94,7 @@ module ActiveRecord
       alias_method_chain :drop_table, :foreign_keys
     end
     
-    class MysqlAdapter
+    class MysqlAdapter < AbstractAdapter
       def remove_foreign_key_constraint(table_name, constraint)
         execute "ALTER TABLE #{quote_table_name(table_name)} DROP FOREIGN KEY #{quote_column_name(constraint)}"
       end
@@ -125,7 +125,7 @@ module ActiveRecord
       end
     end
     
-    class PostgreSQLAdapter
+    class PostgreSQLAdapter < AbstractAdapter
       def remove_foreign_key_constraints_referencing(table_name)
         select_rows(
                 "SELECT referenced.relname, pg_constraint.conname" +
