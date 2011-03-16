@@ -2,6 +2,10 @@ mysql:
     adapter: mysql
     database: fkc_test
     username: root
+mysql2:
+    adapter: mysql2
+    database: fkc_test
+    username: root
 postgresql:
     adapter: postgresql
     database: fkc_test

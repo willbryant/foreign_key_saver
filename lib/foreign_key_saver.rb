@@ -94,11 +94,11 @@ module ActiveRecord
       alias_method_chain :drop_table, :foreign_keys
     end
     
-    class MysqlAdapter < AbstractAdapter
+    module MysqlAdapterForeignKeyMethods # common to mysql & mysql2
       def remove_foreign_key_constraint(table_name, constraint)
         execute "ALTER TABLE #{quote_table_name(table_name)} DROP FOREIGN KEY #{quote_column_name(constraint)}"
       end
-      
+    
       def remove_foreign_key_constraints_referencing(table_name)
         select_rows(
                 "SELECT DISTINCT TABLE_NAME, CONSTRAINT_NAME" +
@@ -108,7 +108,7 @@ module ActiveRecord
           remove_foreign_key_constraint(table_name, constraint_name)
         end
       end
-      
+    
       def foreign_key_constraints_on(table_name)
         self.class.constraints_from_sql(select_value("SHOW CREATE TABLE #{quote_table_name(table_name)}"))
       end
@@ -119,38 +119,68 @@ module ActiveRecord
           ForeignKeyConstraint.new(capture[0], columns_from_sql(capture[1]), capture[2], columns_from_sql(capture[3]), capture[5], capture[4])
         end
       end
-      
+  
       def self.columns_from_sql(column_list_sql)
         column_list_sql.scan(/`([^`]+)`/).collect(&:first)
       end
     end
     
-    class PostgreSQLAdapter < AbstractAdapter
-      def remove_foreign_key_constraints_referencing(table_name)
-        select_rows(
-                "SELECT referenced.relname, pg_constraint.conname" +
-                "  FROM pg_constraint, pg_class, pg_class referenced" +
-                " WHERE pg_constraint.confrelid = pg_class.oid" +
-                "   AND pg_class.relname = #{quote(table_name)}" +
-                "   AND referenced.oid = pg_constraint.conrelid").each do |table_name, constraint_name|
-          remove_foreign_key_constraint(table_name, constraint_name)
+    if const_defined?(:MysqlAdapter)
+      class MysqlAdapter < AbstractAdapter
+        include MysqlAdapterForeignKeyMethods
+      
+        def self.constraints_from_sql(create_table_sql)
+          MysqlAdapterForeignKeyMethods.constraints_from_sql(create_table_sql)
+        end
+      
+        def self.columns_from_sql(column_list_sql)
+          MysqlAdapterForeignKeyMethods.columns_from_sql(column_list_sql)
         end
       end
+    end
+    
+    if const_defined?(:Mysql2Adapter)
+      class Mysql2Adapter < AbstractAdapter
+        include MysqlAdapterForeignKeyMethods
       
-      def foreign_key_constraints_on(table_name)
-        select_rows(
-                "SELECT pg_constraint.conname, pg_get_constraintdef(pg_constraint.oid)" +
-                "  FROM pg_constraint, pg_class" +
-                " WHERE pg_constraint.conrelid = pg_class.oid" +
-                "   AND pg_class.relname = #{quote(table_name)}").collect do |name, constraintdef|
-          self.class.foreign_key_from_sql(name, constraintdef)
-        end.compact
+        def self.constraints_from_sql(create_table_sql)
+          MysqlAdapterForeignKeyMethods.constraints_from_sql(create_table_sql)
+        end
+      
+        def self.columns_from_sql(column_list_sql)
+          MysqlAdapterForeignKeyMethods.columns_from_sql(column_list_sql)
+        end
       end
+    end
+    
+    if const_defined?(:PostgreSQLAdapter)
+      class PostgreSQLAdapter < AbstractAdapter
+        def remove_foreign_key_constraints_referencing(table_name)
+          select_rows(
+                  "SELECT referenced.relname, pg_constraint.conname" +
+                  "  FROM pg_constraint, pg_class, pg_class referenced" +
+                  " WHERE pg_constraint.confrelid = pg_class.oid" +
+                  "   AND pg_class.relname = #{quote(table_name)}" +
+                  "   AND referenced.oid = pg_constraint.conrelid").each do |table_name, constraint_name|
+            remove_foreign_key_constraint(table_name, constraint_name)
+          end
+        end
       
-      def self.foreign_key_from_sql(name, foreign_key_sql)
-        # the clauses look like this: FOREIGN KEY (ac, bc) REFERENCES parent(ap, bp) ON UPDATE CASCADE ON DELETE SET NULL
-        capture = foreign_key_sql.match(/FOREIGN KEY \(((?:\w+)(?:, \w+)*)\) REFERENCES (\w+)\(((?:\w+)(?:, \w+)*)\)(?: ON UPDATE (CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT))?(?: ON DELETE (CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT))?/)
-        ForeignKeyConstraint.new(name, capture[1].split(', '), capture[2], capture[3].split(', '), capture[4], capture[5]) if capture
+        def foreign_key_constraints_on(table_name)
+          select_rows(
+                  "SELECT pg_constraint.conname, pg_get_constraintdef(pg_constraint.oid)" +
+                  "  FROM pg_constraint, pg_class" +
+                  " WHERE pg_constraint.conrelid = pg_class.oid" +
+                  "   AND pg_class.relname = #{quote(table_name)}").collect do |name, constraintdef|
+            self.class.foreign_key_from_sql(name, constraintdef)
+          end.compact
+        end
+      
+        def self.foreign_key_from_sql(name, foreign_key_sql)
+          # the clauses look like this: FOREIGN KEY (ac, bc) REFERENCES parent(ap, bp) ON UPDATE CASCADE ON DELETE SET NULL
+          capture = foreign_key_sql.match(/FOREIGN KEY \(((?:\w+)(?:, \w+)*)\) REFERENCES (\w+)\(((?:\w+)(?:, \w+)*)\)(?: ON UPDATE (CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT))?(?: ON DELETE (CASCADE|RESTRICT|NO ACTION|SET NULL|SET DEFAULT))?/)
+          ForeignKeyConstraint.new(name, capture[1].split(', '), capture[2], capture[3].split(', '), capture[4], capture[5]) if capture
+        end
       end
     end
   end

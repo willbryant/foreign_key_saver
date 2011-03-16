@@ -30,7 +30,24 @@ class ForeignKeyConstraintsTest < Test::Unit::TestCase
       ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action).to_dump
   end
   
-  if ActiveRecord::Base.connection.is_a?(ActiveRecord::ConnectionAdapters::MysqlAdapter)
+  if ActiveRecord::Base.connection.class.name == 'ActiveRecord::ConnectionAdapters::PostgreSQLAdapter'
+    def test_postgresql_constraints_to_sql
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE RESTRICT',
+        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap').to_sql(ActiveRecord::Base.connection)
+
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac", "bc") REFERENCES "parent" ("ap", "bp") ON UPDATE RESTRICT ON DELETE RESTRICT',
+        ActiveRecord::ForeignKeyConstraint.new('cn', ['ac', 'bc'], 'parent', ['ap', 'bp']).to_sql(ActiveRecord::Base.connection)
+
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE CASCADE ON DELETE RESTRICT',
+        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :cascade).to_sql(ActiveRecord::Base.connection)
+
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE SET DEFAULT',
+        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', nil, :set_default).to_sql(ActiveRecord::Base.connection)
+
+      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE SET NULL ON DELETE NO ACTION',
+        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action).to_sql(ActiveRecord::Base.connection)
+    end
+  else
     def test_mysql_constraints_to_sql
       assert_equal 'CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON UPDATE RESTRICT ON DELETE RESTRICT',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap').to_sql(ActiveRecord::Base.connection)
@@ -47,46 +64,29 @@ class ForeignKeyConstraintsTest < Test::Unit::TestCase
       assert_equal 'CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON UPDATE SET NULL ON DELETE NO ACTION',
         ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action).to_sql(ActiveRecord::Base.connection)
     end
-  else
-    def test_constraints_to_sql
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE RESTRICT',
-        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap').to_sql(ActiveRecord::Base.connection)
-
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac", "bc") REFERENCES "parent" ("ap", "bp") ON UPDATE RESTRICT ON DELETE RESTRICT',
-        ActiveRecord::ForeignKeyConstraint.new('cn', ['ac', 'bc'], 'parent', ['ap', 'bp']).to_sql(ActiveRecord::Base.connection)
-
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE CASCADE ON DELETE RESTRICT',
-        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :cascade).to_sql(ActiveRecord::Base.connection)
-
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE RESTRICT ON DELETE SET DEFAULT',
-        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', nil, :set_default).to_sql(ActiveRecord::Base.connection)
-
-      assert_equal 'CONSTRAINT "cn" FOREIGN KEY ("ac") REFERENCES "parent" ("ap") ON UPDATE SET NULL ON DELETE NO ACTION',
-        ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action).to_sql(ActiveRecord::Base.connection)
+  
+    def test_mysql_columns_from_sql
+      assert_equal ['abc'],               ActiveRecord::Base.connection.class.columns_from_sql('`abc`')
+      assert_equal ['abc', 'def'],        ActiveRecord::Base.connection.class.columns_from_sql('`abc`, `def`')
+      assert_equal ['abc', 'def', 'ghi'], ActiveRecord::Base.connection.class.columns_from_sql('`abc`, `def`, `ghi`')
     end
-  end
   
-  def test_mysql_columns_from_sql
-    assert_equal ['abc'],               ActiveRecord::ConnectionAdapters::MysqlAdapter.columns_from_sql('`abc`')
-    assert_equal ['abc', 'def'],        ActiveRecord::ConnectionAdapters::MysqlAdapter.columns_from_sql('`abc`, `def`')
-    assert_equal ['abc', 'def', 'ghi'], ActiveRecord::ConnectionAdapters::MysqlAdapter.columns_from_sql('`abc`, `def`, `ghi`')
-  end
-  
-  def test_mysql_constraints_from_sql
-    assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap')], ActiveRecord::ConnectionAdapters::MysqlAdapter.
-      constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`)')
+    def test_mysql_constraints_from_sql
+      assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap')], ActiveRecord::Base.connection.class.
+        constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`)')
       
-    assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', ['ac', 'bc'], 'parent', ['ap', 'bp'])], ActiveRecord::ConnectionAdapters::MysqlAdapter.
-      constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`, `bc`) REFERENCES `parent` (`ap`, `bp`)')
+      assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', ['ac', 'bc'], 'parent', ['ap', 'bp'])], ActiveRecord::Base.connection.class.
+        constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`, `bc`) REFERENCES `parent` (`ap`, `bp`)')
       
-    assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :cascade)], ActiveRecord::ConnectionAdapters::MysqlAdapter.
-      constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON UPDATE CASCADE')
+      assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :cascade)], ActiveRecord::Base.connection.class.
+        constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON UPDATE CASCADE')
   
-    assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', nil, :set_default)], ActiveRecord::ConnectionAdapters::MysqlAdapter.
-      constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON DELETE SET DEFAULT')
+      assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', nil, :set_default)], ActiveRecord::Base.connection.class.
+        constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON DELETE SET DEFAULT')
   
-    assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action)], ActiveRecord::ConnectionAdapters::MysqlAdapter.
-      constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON DELETE NO ACTION ON UPDATE SET NULL') # mysql has update and delete kinda around the wrong way
+      assert_equal [ActiveRecord::ForeignKeyConstraint.new('cn', 'ac', 'parent', 'ap', :set_null, :no_action)], ActiveRecord::Base.connection.class.
+        constraints_from_sql('CONSTRAINT `cn` FOREIGN KEY (`ac`) REFERENCES `parent` (`ap`) ON DELETE NO ACTION ON UPDATE SET NULL') # mysql has update and delete kinda around the wrong way
+    end
   end
   
   def test_fkc_define_roundtrip
