@@ -15,4 +15,4 @@ TEST_TEMP_DIR = File.join(File.dirname(__FILE__), 'tmp', 'foreign_key_constraint
 database_config = YAML::load(IO.read(File.join(File.dirname(__FILE__), '/database.yml')))
 ActiveRecord::Base.establish_connection(database_config[ENV['RAILS_ENV']])
 
-require 'init' # load foreign_key_constraints
+require File.expand_path(File.join(File.dirname(__FILE__), '../init')) # load foreign_key_constraints

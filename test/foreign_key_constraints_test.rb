@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), 'test_helper')
+require File.expand_path(File.join(File.dirname(__FILE__), 'test_helper'))
 
 class ForeignKeyConstraintsTest < Test::Unit::TestCase
   def schema_dump
