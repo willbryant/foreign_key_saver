@@ -126,7 +126,7 @@ module ActiveRecord
     end
     
     if const_defined?(:MysqlAdapter)
-      class MysqlAdapter < AbstractAdapter
+      class MysqlAdapter
         include MysqlAdapterForeignKeyMethods
       
         def self.constraints_from_sql(create_table_sql)
@@ -140,7 +140,7 @@ module ActiveRecord
     end
     
     if const_defined?(:Mysql2Adapter)
-      class Mysql2Adapter < AbstractAdapter
+      class Mysql2Adapter
         include MysqlAdapterForeignKeyMethods
       
         def self.constraints_from_sql(create_table_sql)
@@ -154,7 +154,7 @@ module ActiveRecord
     end
     
     if const_defined?(:PostgreSQLAdapter)
-      class PostgreSQLAdapter < AbstractAdapter
+      class PostgreSQLAdapter
         def remove_foreign_key_constraints_referencing(table_name)
           select_rows(
                   "SELECT referenced.relname, pg_constraint.conname" +
