@@ -110,7 +110,7 @@ module ActiveRecord
       end
     
       def foreign_key_constraints_on(table_name)
-        self.class.constraints_from_sql(select_value("SHOW CREATE TABLE #{quote_table_name(table_name)}"))
+        self.class.constraints_from_sql(select_one("SHOW CREATE TABLE #{quote_table_name(table_name)}")["Create Table"])
       end
       
       def self.constraints_from_sql(create_table_sql)
