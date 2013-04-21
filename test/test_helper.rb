@@ -1,18 +1,29 @@
-require 'rubygems'
-require 'test/unit'
-
-PROJECT_ROOT=File.expand_path("../../..")
-if File.directory?("#{PROJECT_ROOT}/vendor/rails")
-  require "#{PROJECT_ROOT}/vendor/rails/railties/lib/initializer"
+RAILS_ROOT = File.expand_path("../../..")
+if File.exist?("#{RAILS_ROOT}/config/boot.rb")
+  require "#{RAILS_ROOT}/config/boot.rb"
+else
+  require 'rubygems'
 end
+
+puts "Rails: #{ENV['RAILS_VERSION'] || 'default'}"
+gem 'activesupport', ENV['RAILS_VERSION']
+gem 'activerecord',  ENV['RAILS_VERSION']
+
+require 'test/unit'
+require 'active_support'
+require 'active_support/test_case'
 require 'active_record'
 
-raise "use RAILS_ENV=mysql, RAILS_ENV=mysql2, or RAILS_ENV=postgresql to test this plugin" unless %w(mysql mysql2 postgresql).include?(ENV['RAILS_ENV'])
-RAILS_ENV = ENV['RAILS_ENV']
-RAILS_ROOT = File.dirname(__FILE__)
-TEST_TEMP_DIR = File.join(File.dirname(__FILE__), 'tmp', 'foreign_key_constraints')
+begin
+  require 'ruby-debug'
+  Debugger.start
+rescue LoadError
+  # ruby-debug not installed, no debugging for you
+end
 
-database_config = YAML::load(IO.read(File.join(File.dirname(__FILE__), '/database.yml')))
-ActiveRecord::Base.establish_connection(database_config[ENV['RAILS_ENV']])
+ActiveRecord::Base.configurations = YAML::load(IO.read(File.join(File.dirname(__FILE__), "database.yml")))
+configuration = ActiveRecord::Base.configurations[ENV['RAILS_ENV']]
+raise "use RAILS_ENV=#{ActiveRecord::Base.configurations.keys.sort.join '/'} to test this plugin" unless configuration
+ActiveRecord::Base.establish_connection configuration
 
 require File.expand_path(File.join(File.dirname(__FILE__), '../init')) # load foreign_key_constraints
