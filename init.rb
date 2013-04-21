@@ -1,1 +1,1 @@
-require 'foreign_key_saver'
+require 'foreign_key_saver/foreign_key_saver_patches'
