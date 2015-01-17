@@ -11,13 +11,13 @@ Examples
 ========
 
 # adds a constraint on projects.customer_id with parent customers.id
-add_foreign_key :projects, :customer_id, :customers, :id
+add_foreign_key_constraint :projects, :customer_id, :customers, :id
 
 # adds a constraint on projects(a, b) with parent(a, b) with the default RESTRICT update/delete actions
-add_foreign_key "child", ["a", "b"], "parent", ["a", "b"]
+add_foreign_key_constraint "child", ["a", "b"], "parent", ["a", "b"]
 
 # adds a constraint with the ON UPDATE action set to CASCADE and the ON DELETE action set to SET NULL
-add_foreign_key 'projects', 'customer_id', 'customers', 'id', :on_update => :cascade, :on_delete => :set_null
+add_foreign_key_constraint 'projects', 'customer_id', 'customers', 'id', :on_update => :cascade, :on_delete => :set_null
 
 The following actions are defined:
   :restrict
